@@ -13,13 +13,16 @@
     <span class="task-header__value">{{ taskHeader.createdDate }}</span>
   </div>
 </section>
-<ng-container *ngIf="hasForm; else noTaskForm">
+<div *ngIf="isLoading" class="no-form-state">
+  <p>Loading task form...</p>
+</div>
+<ng-container *ngIf="!isLoading && hasForm; else noTaskForm">
   <div *ngIf="formData | async as formData">
     <app-flwform [props]="formData.props" [payload]="formData.variables"></app-flwform>
   </div>
 </ng-container>
 <ng-template #noTaskForm>
-  <div class="no-form-state">
+  <div class="no-form-state" *ngIf="!isLoading">
     <p>No form is available for this task.</p>
     <button
       type="button"
