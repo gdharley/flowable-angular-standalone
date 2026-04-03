@@ -1,8 +1,11 @@
-<div *ngIf="hasForm && props; else elseBlock">
+<div *ngIf="isLoading" class="no-form-state">
+  <p>Loading process form...</p>
+</div>
+<div *ngIf="!isLoading && hasForm && props; else elseBlock">
   <app-flwform [props]="props"></app-flwform>
 </div>
 <ng-template #elseBlock>
-<div class="no-form-state">
+<div class="no-form-state" *ngIf="!isLoading">
   <p>No form is available for this process.</p>
   <button
     type="button"

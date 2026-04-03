@@ -17,6 +17,7 @@ import {MenuRefreshService} from '../menu-refresh.service';
 export class TaskComponent implements OnInit {
   public formData: ReplaySubject<FormData> = new ReplaySubject<FormData>(1);
   public hasForm = false;
+  public isLoading = false;
   public variables: Model.Payload = {};
   public taskHeader?: TaskHeader;
   private currentTaskId?: string;
@@ -41,16 +42,10 @@ export class TaskComponent implements OnInit {
         map((params) => params['taskId']),
         tap((currentTaskId) => {
           this.currentTaskId = currentTaskId;
+          this.isLoading = true;
           this.hasForm = false;
           this.variables = {};
           this.taskHeader = undefined;
-          this.formData.next({
-            props: {
-              config: {} as Model.FormLayout,
-              onOutcomePressed: () => undefined
-            },
-            variables: {}
-          });
           this.cdr.detectChanges();
         }),
         switchMap((currentTaskId) =>
@@ -72,13 +67,22 @@ export class TaskComponent implements OnInit {
               form,
               taskDetails,
               variables
-            }))
+            })),
+            catchError(() =>
+              of({
+                currentTaskId,
+                form: {} as Model.FormLayout,
+                taskDetails: {} as TaskDetails,
+                variables: {}
+              })
+            )
           )
         ),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(({currentTaskId, form, taskDetails, variables}) => {
         this.currentTaskId = currentTaskId;
+        this.isLoading = false;
         this.variables = variables;
         this.hasForm = this.hasRenderableForm(form);
         this.taskHeader = {
