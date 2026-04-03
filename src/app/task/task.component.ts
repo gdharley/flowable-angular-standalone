@@ -1,10 +1,12 @@
 import {HttpClient, HttpHeaders} from '@angular/common/http';
-import {ChangeDetectorRef, Component, OnInit} from '@angular/core';
+import {ChangeDetectorRef, Component, DestroyRef, OnInit, inject} from '@angular/core';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {ActivatedRoute, Router} from '@angular/router';
 import {Model} from '@flowable/forms';
+import {forkJoin, of, ReplaySubject} from 'rxjs';
+import {catchError, map, switchMap, tap} from 'rxjs/operators';
+
 import {MenuRefreshService} from '../menu-refresh.service';
-import {ReplaySubject, combineLatest, of} from 'rxjs';
-import {catchError, map, mergeMap} from 'rxjs/operators';
 
 @Component({
   selector: 'app-task',
@@ -18,6 +20,7 @@ export class TaskComponent implements OnInit {
   public variables: Model.Payload = {};
   public taskHeader?: TaskHeader;
   private currentTaskId?: string;
+  private readonly destroyRef = inject(DestroyRef);
   private readonly options = {
     headers: new HttpHeaders({
       Authorization: 'Basic YWRtaW46dGVzdA=='
@@ -33,55 +36,75 @@ export class TaskComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const taskId = this.route.params.pipe(map((params) => params['taskId']));
-
-    combineLatest([
-      taskId,
-      taskId.pipe(
-        mergeMap((currentTaskId) =>
-          this.httpClient
-            .get<Model.FormLayout>(`/core-api/tasks/${currentTaskId}/form`, this.options)
-            .pipe(catchError(() => of({} as Model.FormLayout)))
-        )
-      ),
-      taskId.pipe(
-        mergeMap((currentTaskId) =>
-          this.httpClient.get<Model.Payload>(`/core-api/tasks/${currentTaskId}/variables`, this.options)
-        )
-      ),
-      taskId.pipe(
-        mergeMap((currentTaskId) =>
-          this.httpClient.get<TaskDetails>(`/platform-api/tasks/${currentTaskId}`, this.options)
-        )
+    this.route.params
+      .pipe(
+        map((params) => params['taskId']),
+        tap((currentTaskId) => {
+          this.currentTaskId = currentTaskId;
+          this.hasForm = false;
+          this.variables = {};
+          this.taskHeader = undefined;
+          this.formData.next({
+            props: {
+              config: {} as Model.FormLayout,
+              onOutcomePressed: () => undefined
+            },
+            variables: {}
+          });
+          this.cdr.detectChanges();
+        }),
+        switchMap((currentTaskId) =>
+          forkJoin({
+            form: this.httpClient
+              .get<Model.FormLayout>(`/core-api/tasks/${currentTaskId}/form`, this.options)
+              .pipe(catchError(() => of({} as Model.FormLayout))),
+            taskDetails: this.httpClient.get<TaskDetails>(
+              `/platform-api/tasks/${currentTaskId}`,
+              this.options
+            ),
+            variables: this.httpClient.get<Model.Payload>(
+              `/core-api/tasks/${currentTaskId}/variables`,
+              this.options
+            )
+          }).pipe(
+            map(({form, taskDetails, variables}) => ({
+              currentTaskId,
+              form,
+              taskDetails,
+              variables
+            }))
+          )
+        ),
+        takeUntilDestroyed(this.destroyRef)
       )
-    ]).subscribe(([currentTaskId, form, variables, taskDetails]) => {
-      this.currentTaskId = currentTaskId;
-      this.variables = variables;
-      this.hasForm = this.hasRenderableForm(form);
-      this.taskHeader = {
-        name: taskDetails.name || 'Task',
-        assignee: taskDetails.assignee || 'Unassigned',
-        dueDate: this.formatDate(taskDetails.dueDate),
-        createdDate: this.formatDate(taskDetails.createTime)
-      };
-      form.outcomes = form.outcomes || [
-        {
-          label: 'Complete',
-          value: '__COMPLETE'
-        }
-      ];
-
-      this.formData.next({
-        props: {
-          config: form,
-          onOutcomePressed: (payload: Model.Payload, result: unknown) => {
-            this.completeTask(currentTaskId, payload, result);
+      .subscribe(({currentTaskId, form, taskDetails, variables}) => {
+        this.currentTaskId = currentTaskId;
+        this.variables = variables;
+        this.hasForm = this.hasRenderableForm(form);
+        this.taskHeader = {
+          name: taskDetails.name || 'Task',
+          assignee: taskDetails.assignee || 'Unassigned',
+          dueDate: this.formatDate(taskDetails.dueDate),
+          createdDate: this.formatDate(taskDetails.createTime)
+        };
+        form.outcomes = form.outcomes || [
+          {
+            label: 'Complete',
+            value: '__COMPLETE'
           }
-        },
-        variables
+        ];
+
+        this.formData.next({
+          props: {
+            config: form,
+            onOutcomePressed: (payload: Model.Payload, result: unknown) => {
+              this.completeTask(currentTaskId, payload, result);
+            }
+          },
+          variables
+        });
+        this.cdr.detectChanges();
       });
-      this.cdr.detectChanges();
-    });
   }
 
   completeWithoutForm(): void {

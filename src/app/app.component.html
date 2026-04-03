@@ -1,5 +1,14 @@
 <div class="body">
-  <div><img src="assets/flowable.jpg" width="350"/></div>
+  <div>
+    <img
+      src="assets/flowable.jpg"
+      width="350"
+      class="logo-trigger"
+      (click)="toggleDebugFromLogo()"
+      title="Flowable"
+      alt="Flowable"
+    />
+  </div>
 
   <div class="menu">
     <app-menu></app-menu>
