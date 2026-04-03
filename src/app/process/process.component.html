@@ -1,0 +1,15 @@
+<div *ngIf="hasForm && props; else elseBlock">
+  <app-flwform [props]="props"></app-flwform>
+</div>
+<ng-template #elseBlock>
+<div class="no-form-state">
+  <p>No form is available for this process.</p>
+  <button
+    type="button"
+    class="flw__component__button flw__component--button flw__component--primary__button"
+    (click)="clickEvent()"
+  >
+    Start Process
+  </button>
+</div>
+</ng-template>

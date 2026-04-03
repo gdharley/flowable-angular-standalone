@@ -1,0 +1,46 @@
+<section class="menu-section">
+  <h2 class="menu-heading">
+    <span class="menu-heading__label">Available Tasks</span>
+    <span class="menu-heading__count">{{ tasks?.length || 0 }}</span>
+  </h2>
+  <input
+    type="search"
+    class="menu-search"
+    [value]="taskSearch"
+    (input)="updateTaskSearch($any($event.target).value)"
+    placeholder="Search tasks"
+  />
+  <div class="menu-list">
+    <a
+      *ngFor="let task of filteredTasks"
+      [routerLink]="['/task', task.id]"
+      (click)="select(task, 'task')"
+      [ngClass]="{active: isActive(task, 'task')}"
+    >
+      {{ task.name }}
+    </a>
+  </div>
+</section>
+<section class="menu-section">
+  <h2 class="menu-heading">
+    <span class="menu-heading__label">Available Processes</span>
+    <span class="menu-heading__count">{{ processes?.length || 0 }}</span>
+  </h2>
+  <input
+    type="search"
+    class="menu-search"
+    [value]="processSearch"
+    (input)="updateProcessSearch($any($event.target).value)"
+    placeholder="Search processes"
+  />
+  <div class="menu-list">
+    <a
+      *ngFor="let process of filteredProcesses"
+      [routerLink]="['/process', process.id]"
+      (click)="select(process, 'process')"
+      [ngClass]="{active: isActive(process, 'process')}"
+    >
+      {{ process.name }}
+    </a>
+  </div>
+</section>
