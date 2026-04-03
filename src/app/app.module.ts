@@ -2,9 +2,8 @@ import {HttpClientModule} from '@angular/common/http';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
-import {RouteReuseStrategy} from '@angular/router';
 
-import {AppRoutingModule, CustomReuseStrategy} from './app-routing.module';
+import {AppRoutingModule} from './app-routing.module';
 import {AppComponent} from './app.component';
 import {FlwformComponent} from './flwform/flwform.component';
 import {MenuComponent} from './menu/menu.component';
@@ -23,6 +22,6 @@ import {WelcomeComponent} from './welcome/welcome.component';
     FlwformComponent
   ],
   imports: [BrowserModule, CommonModule, AppRoutingModule, HttpClientModule],
-  providers: [{provide: RouteReuseStrategy, useClass: CustomReuseStrategy}]
+  providers: []
 })
 export class AppModule {}
